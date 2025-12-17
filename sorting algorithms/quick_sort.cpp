@@ -8,21 +8,33 @@ void print(vector<int>& arr) {
   cout << endl;
 }
 
-void selection_sort(vector<int>& arr, int n) {
-  for (int i = 0; i < n - 1; i++) {
-    int min_idx = i;
-    for (int j = i + 1; j < n; j++) {
-      if (arr[j] < arr[min_idx]) {
-        min_idx = j;
-      }
+int partition(vector<int>& arr, int low, int high) {
+  int pivot = arr[high];
+  int i = low - 1;
+
+  for (int j = low; j < high; j++) {
+    if (arr[j] < pivot) {
+      i++;
+      swap(arr[i], arr[j]);
     }
-    swap(arr[i], arr[min_idx]);
+  }
+
+  swap(arr[i + 1], arr[high]);
+  return i + 1;
+}
+
+void quick_sort(vector<int>& arr, int low, int high) {
+  if (low < high) {
+    int pivot = partition(arr, low, high);
+    quick_sort(arr, low, pivot - 1);
+    quick_sort(arr, low, pivot - 1);
+    quick_sort(arr, pivot + 1, high);
   }
 }
 
 int main() {
   vector<int> arr = {33,23,4325,356,34,3,34,773,75,5234,77};
   print(arr);
-  selection_sort(arr, (int)arr.size());
+  quick_sort(arr, 0, (int)arr.size());
   print(arr);
 }
