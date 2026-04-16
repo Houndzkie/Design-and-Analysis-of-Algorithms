@@ -1,8 +1,8 @@
-#include "btree24.hpp"
+#include "hidden.hpp"
 #include <iostream>
 using namespace std;
 int main() {
-    BTree24* tree = new BTree24();
+    MyBTree* tree = new MyBTree();
 
     char op;
     int num;
@@ -28,11 +28,12 @@ int main() {
                 tree->print();
                 break;
             case 'x':
-                cout << "Exiting";
+                cout << "\n\n\n\n\n\n\n\n\n\n\n";
+                tree->reset();
                 break;
             default:
                 cout << "Invalid operation";
         }
-    } while (op != 'x');
+    } while (op != 'h');
     return 0;
 };

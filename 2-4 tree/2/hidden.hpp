@@ -1,18 +1,156 @@
+#include "btree24.hpp"
 #include "node.hpp"
 #include <iostream>
 using namespace std;
 
-class BTree24 {
-	node* root;
-
-	public:
-	BTree24() {
-		root = nullptr;
-	}
-
+class MyBTree {
+  node* root;
+  public:
 	void reset() {
 		root = nullptr;
 	}
+
+  bool remove(int num) {
+    if (!root) return false;
+
+    node* curr = root;
+    int idx = -1;
+
+    // --- STEP 1: SEARCH ---
+    while (curr) {
+        idx = 0;
+        while (idx < curr->size && num > curr->keys[idx]) idx++;
+
+        if (idx < curr->size && curr->keys[idx] == num) break;
+
+        if (curr->children[idx]) curr = curr->children[idx];
+        else break;
+    }
+
+    // not found
+    if (!curr || idx >= curr->size || curr->keys[idx] != num) return false;
+
+    // --- STEP 2: IF INTERNAL NODE → SWAP WITH SUCCESSOR ---
+    if (curr->children[0] != nullptr) {
+        node* w = curr->children[idx + 1];
+
+        // go to leftmost leaf
+        while (w->children[0] != nullptr) {
+            w = w->children[0];
+        }
+
+        // swap
+        curr->keys[idx] = w->keys[0];
+        curr = w;
+        idx = 0;
+    }
+
+    // --- STEP 3: REMOVE FROM LEAF ---
+    for (int i = idx; i < curr->size - 1; i++) {
+        curr->keys[i] = curr->keys[i + 1];
+    }
+    curr->size--;
+
+    // --- STEP 4: FIX UNDERFLOW ---
+    while (curr != root && curr->size == 0) {
+        node* parent = curr->parent;
+
+        int pos = 0;
+        while (parent->children[pos] != curr) pos++;
+
+        node* leftSib = (pos > 0) ? parent->children[pos - 1] : nullptr;
+        node* rightSib = (pos < parent->size) ? parent->children[pos + 1] : nullptr;
+
+        // --- TRANSFER (prefer right sibling) ---
+        if (rightSib && rightSib->size > 1) {
+            // move parent key down
+            curr->keys[0] = parent->keys[pos];
+            curr->size = 1;
+
+            // move sibling key up
+            parent->keys[pos] = rightSib->keys[0];
+
+            // shift sibling keys
+            for (int i = 0; i < rightSib->size - 1; i++) {
+                rightSib->keys[i] = rightSib->keys[i + 1];
+            }
+            rightSib->size--;
+
+            return true;
+        }
+        else if (leftSib && leftSib->size > 1) {
+            // shift current keys
+            for (int i = curr->size; i > 0; i--) {
+                curr->keys[i] = curr->keys[i - 1];
+            }
+
+            curr->keys[0] = parent->keys[pos - 1];
+            curr->size = 1;
+
+            parent->keys[pos - 1] = leftSib->keys[leftSib->size - 1];
+            leftSib->size--;
+
+            return true;
+        }
+
+        // --- FUSION (prefer right sibling) ---
+        if (rightSib) {
+            // merge current + parent key + right sibling
+            curr->keys[0] = parent->keys[pos];
+            curr->size = 1;
+
+            for (int i = 0; i < rightSib->size; i++) {
+                curr->keys[curr->size++] = rightSib->keys[i];
+            }
+
+            // shift parent keys
+            for (int i = pos; i < parent->size - 1; i++) {
+                parent->keys[i] = parent->keys[i + 1];
+            }
+
+            // shift children
+            for (int i = pos + 1; i < parent->size; i++) {
+                parent->children[i] = parent->children[i + 1];
+            }
+
+            parent->size--;
+            delete rightSib;
+        }
+        else if (leftSib) {
+            // merge into left sibling
+            leftSib->keys[leftSib->size++] = parent->keys[pos - 1];
+
+            for (int i = 0; i < curr->size; i++) {
+                leftSib->keys[leftSib->size++] = curr->keys[i];
+            }
+
+            // shift parent
+            for (int i = pos - 1; i < parent->size - 1; i++) {
+                parent->keys[i] = parent->keys[i + 1];
+            }
+
+            for (int i = pos; i < parent->size; i++) {
+                parent->children[i] = parent->children[i + 1];
+            }
+
+            parent->size--;
+            delete curr;
+            curr = leftSib;
+        }
+
+        curr = parent;
+    }
+
+    // --- ROOT FIX ---
+    if (root->size == 0) {
+        node* oldRoot = root;
+        root = root->children[0];
+        if (root) root->parent = nullptr;
+        delete oldRoot;
+    }
+
+    return true;
+}
 
 	node* search(node* n, int num) {
 		if (!n) return n;
@@ -136,9 +274,15 @@ class BTree24 {
     return true;
 	}
 
-	// WARNING. Do not modify these methods.
+
+
+	// WARNING. Do not modify this method.
     // Doing so will nullify your score for this activity.
 	void print_node(string s, node* n) {
+		if (n == nullptr) {
+			cout << "Empty" << endl;
+			return;
+		}
 		cout << s << ": ";
 		for (int i = 0; i < n->size; i++) {
 			cout << n->keys[i] << " ";
@@ -150,6 +294,7 @@ class BTree24 {
 			}
 		}
 	}
+
     bool check_parent(node* curr, node* par) {
         if (!curr) {
             return true;
@@ -175,4 +320,13 @@ class BTree24 {
 		print_node("Root", root);
 		check_parent(root, NULL);
 	}
+
+	public:
+
+	MyBTree() {
+		root = nullptr;
+	}
 };
+
+
+
